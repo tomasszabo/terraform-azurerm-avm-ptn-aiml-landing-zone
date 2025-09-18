@@ -23,6 +23,9 @@ locals {
     apim_zone = {
       name = "privatelink.azure-api.net"
     }
+    apim_zone = {
+      name = "azure-api.net"
+    }
     cosmos_sql_zone = {
       name = "privatelink.documents.azure.com"
     }

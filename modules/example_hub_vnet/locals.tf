@@ -31,8 +31,11 @@ locals {
     key_vault_zone = {
       name = "privatelink.vaultcore.azure.net"
     }
-    apim_zone = {
+    apim_private_zone = {
       name = "privatelink.azure-api.net"
+    }
+    apim_zone = {
+      name = "azure-api.net"
     }
     cosmos_sql_zone = {
       name = "privatelink.documents.azure.com"

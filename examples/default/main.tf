@@ -18,6 +18,8 @@ terraform {
 }
 
 provider "azurerm" {
+  subscription_id = "77e22c81-77e2-4a20-8f29-17a9443d8e33"
+  storage_use_azuread = true
   features {
     resource_group {
       prevent_deletion_if_contains_resources = false
@@ -51,6 +53,8 @@ module "naming" {
   version = "0.3.0"
 }
 
+# Get the deployer IP address to allow for public write to the key vault. This is to make sure the tests run.
+# In practice your deployer machine will be on a private network and this will not be required.
 data "http" "ip" {
   url = "https://api.ipify.org/"
   retry {
@@ -62,11 +66,11 @@ data "http" "ip" {
 
 #create a sample hub to mimic an existing network landing zone configuration
 module "example_hub" {
-  source = "../../modules/example_hub_vnet"
+  source = "../modules/example_hub_vnet"
 
   deployer_ip_address = "${data.http.ip.response_body}/32"
-  location            = "australiaeast"
-  resource_group_name = "default-example-${module.naming.resource_group.name_unique}"
+  location            = "swedencentral"
+  resource_group_name = "ai-lz-hub-03-rg"
   vnet_definition = {
     address_space = "10.10.0.0/24"
   }
@@ -74,16 +78,17 @@ module "example_hub" {
   name_prefix      = "${module.naming.resource_group.name_unique}-hub"
 }
 
-module "test" {
-  source = "../../"
-
-  location            = "australiaeast" #temporarily pinning on australiaeast for capacity limits in test subscription.
-  resource_group_name = "ai-lz-rg-default-${substr(module.naming.unique-seed, 0, 5)}"
-  vnet_definition = {
+module "avm-ptn-aiml-landing-zone" {
+  source  = "../.."
+  
+  location            = "swedencentral" 
+  resource_group_name = "ai-lz-03-rg"
+	vnet_definition = {
     name          = "ai-lz-vnet-default"
     address_space = "192.168.0.0/23"                                                                 # has to be out of 192.168.0.0/16 currently. Other RFC1918 not supported for foundry capabilityHost injection.
-    dns_servers   = [for key, value in module.example_hub.dns_resolver_inbound_ip_addresses : value] # Use the DNS resolver IPs from the example hub
-    hub_vnet_peering_definition = {
+    dns_servers = [for key, value in module.example_hub.dns_resolver_inbound_ip_addresses  : value], # Use the DNS resolver inbound IPs from the example hub
+    create_vnet_peering = true
+    vnet_peering_configuration = {
       peer_vnet_resource_id = module.example_hub.virtual_network_resource_id
       firewall_ip_address   = module.example_hub.firewall_ip_address
     }
@@ -153,18 +158,44 @@ module "test" {
       }
     }
   }
+  apim_definition = {
+    name            = "ai-alz-apim-6oyt"
+    publisher_email = "admin@contoso.com"
+    publisher_name  = "Contoso"
+    sku_capacity    = 3
+    virtual_network_type = "Internal"
+    public_network_access_enabled = true
+  }
   app_gateway_definition = {
     backend_address_pools = {
       example_pool = {
-        name = "example-backend-pool"
+        name  = "example-backend-pool"
+        fqdns = ["ai-alz-apim-6oyt.azure-api.net"]
       }
     }
 
+    probe_configurations = {
+      apim-probe = {
+        name                = "apim-probe"
+        protocol            = "Https"
+        host                = "ai-alz-apim-6oyt.azure-api.net"
+        path                = "/status-0123456789abcdef"
+        interval            = 30
+        timeout             = 30
+        unhealthy_threshold = 3
+        match = {
+          status_code = ["200-399"]
+        }
+      }
+    }
+   
     backend_http_settings = {
       example_http_settings = {
-        name     = "example-http-settings"
-        port     = 80
-        protocol = "Http"
+        name     = "example-https-settings"
+        port     = 443
+        protocol = "Https"
+        probe_name  = "apim-probe"
+        pick_host_name_from_backend_address = true
       }
     }
 
@@ -188,7 +219,7 @@ module "test" {
         rule_type                  = "Basic"
         http_listener_name         = "example-listener"
         backend_address_pool_name  = "example-backend-pool"
-        backend_http_settings_name = "example-http-settings"
+        backend_http_settings_name = "example-https-settings"
         priority                   = 100
       }
     }
@@ -208,10 +239,11 @@ module "test" {
     consistency_level          = "Session"
   }
   genai_key_vault_definition = {
-    public_network_access_enabled = true # configured for testing
+    #this is for AVM testing purposes only. Doing this as we don't have an easy for the test runner to be privately connected for testing.
+    public_network_access_enabled = true
     network_acls = {
       bypass   = "AzureServices"
-      ip_rules = ["${data.http.ip.response_body}/32"] # Allow access from the test runner's IP address
+      ip_rules = ["${data.http.ip.response_body}/32"]
     }
   }
   genai_storage_account_definition = {
@@ -224,4 +256,3 @@ module "test" {
     existing_zones_resource_group_resource_id = module.example_hub.resource_group_resource_id
   }
 }
-

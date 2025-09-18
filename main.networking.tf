@@ -41,7 +41,7 @@ module "nsgs" {
 module "hub_vnet_peering" {
   source  = "Azure/avm-res-network-virtualnetwork/azurerm//modules/peering"
   version = "0.9.0"
-  count   = var.vnet_definition.vnet_peering_configuration.peer_vnet_resource_id != null ? 1 : 0
+  count = var.vnet_definition.create_vnet_peering ? 1 : 0
 
   allow_forwarded_traffic      = var.vnet_definition.vnet_peering_configuration.allow_forwarded_traffic
   allow_gateway_transit        = var.vnet_definition.vnet_peering_configuration.allow_gateway_transit

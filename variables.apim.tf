@@ -95,7 +95,16 @@ variable "apim_definition" {
     tenant_access = optional(object({
       enabled = bool
     }), null)
+    virtual_network_type = optional(string, "None")
+    public_network_access_enabled = optional(bool, true)
   })
+  validation {
+    condition = (
+      var.apim_definition.virtual_network_type == null ||
+      contains(["None", "External", "Internal"], var.apim_definition.virtual_network_type)
+    )
+    error_message = "apim_definition.virtual_network_type must be one of: \"None\", \"External\", \"Internal\"."
+  }
   default = {
     publisher_email = "DoNotReply@exampleEmail.com"
     publisher_name  = "Azure API Management"
@@ -160,5 +169,7 @@ Configuration object for the Azure API Management service to be deployed.
 - `tags` - (Optional) Map of tags to assign to the API Management service.
 - `tenant_access` - (Optional) Tenant access configuration.
   - `enabled` - Whether tenant access is enabled.
+- `virtual_network_type` - (Optional) The type of virtual network integration. Must be one of "None", "External", or "Internal". Default is "None".
+- `public_network_access_enabled` - (Optional) Whether public network access is enabled. Default is true.
 DESCRIPTION
 }

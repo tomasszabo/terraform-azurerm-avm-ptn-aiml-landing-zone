@@ -10,6 +10,7 @@ variable "vnet_definition" {
       address_prefix = optional(string)
       }
     )), {})
+    create_vnet_peering = optional(bool, false)
     vnet_peering_configuration = optional(object({
       peer_vnet_resource_id                = optional(string)
       firewall_ip_address                  = optional(string)
@@ -42,6 +43,7 @@ Configuration object for the Virtual Network (VNet) to be deployed.
   - `enabled` - (Optional) Whether the subnet is enabled. Default is true.
   - `name` - (Optional) The name of the subnet. If not provided, a name will be generated.
   - `address_prefix` - (Optional) The address prefix for the subnet in CIDR notation.
+- `create_vnet_peering` - (Optional) Whether to create VNet peering. Default is false. Set to true when `peer_vnet_resource_id` is provided or you want peering.
 - `vnet_peering_configuration` - (Optional) Configuration for VNet peering.
   - `peer_vnet_resource_id` - (Optional) Resource ID of the peer VNet.
   - `firewall_ip_address` - (Optional) IP address of the firewall for routing.
