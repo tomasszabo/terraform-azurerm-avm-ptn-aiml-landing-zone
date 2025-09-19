@@ -94,6 +94,9 @@ locals {
     ai_foundry_cognitive_services_zone = {
       name = "privatelink.cognitiveservices.azure.com"
     }
+    aca_zone = {
+      name = "${azurerm_resource_group.this.location}.azurecontainerapps.io"
+    }
   }
   region_zones        = local.region_zones_lookup != null ? local.region_zones_lookup : []
   region_zones_lookup = [for region in module.avm_utl_regions.regions : region if(lower(region.name) == lower(azurerm_resource_group.this.location) || (lower(region.display_name) == lower(azurerm_resource_group.this.location)))][0].zones
