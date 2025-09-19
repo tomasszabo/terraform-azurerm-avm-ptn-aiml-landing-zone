@@ -83,6 +83,9 @@ locals {
     ai_foundry_cognitive_services_zone = {
       name = "privatelink.cognitiveservices.azure.com"
     }
+    aca_zone = {
+      name = "${azurerm_resource_group.this.location}.azurecontainerapps.io"
+    }
   }
   private_dns_zones = var.flag_platform_landing_zone == true ? local.private_dns_zone_map : {}
   private_dns_zones_existing = var.flag_platform_landing_zone == false ? { for key, value in local.private_dns_zone_map : key => {

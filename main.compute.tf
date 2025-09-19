@@ -29,3 +29,17 @@ module "container_apps_managed_environment" {
   workload_profile        = var.container_app_environment_definition.workload_profile
   zone_redundancy_enabled = length(local.region_zones) > 1 ? var.container_app_environment_definition.zone_redundancy_enabled : false
 }
+
+resource "azurerm_private_dns_a_record" "aca_privatelink" {
+  count   = var.container_app_environment_definition.deploy ? 1 : 0
+  name                = "*"                
+  zone_name           = var.flag_platform_landing_zone ? module.private_dns_zones.aca_zone.name : local.private_dns_zones_existing.aca_zone.name
+  resource_group_name = var.flag_platform_landing_zone ? element(split("/", module.private_dns_zones.aca_zone.resource_id), 4) : element(split("/", local.private_dns_zones_existing.aca_zone.resource_id), 4)
+  
+  ttl                 = 300
+  records = [module.container_apps_managed_environment[0].static_ip_address]
+
+  depends_on = [
+    module.container_apps_managed_environment[0]
+  ]
+}
