@@ -66,7 +66,7 @@ data "http" "ip" {
 
 #create a sample hub to mimic an existing network landing zone configuration
 module "example_hub" {
-  source = "../modules/example_hub_vnet"
+  source = "../../modules/example_hub_vnet"
 
   deployer_ip_address = "${data.http.ip.response_body}/32"
   location            = "swedencentral"
